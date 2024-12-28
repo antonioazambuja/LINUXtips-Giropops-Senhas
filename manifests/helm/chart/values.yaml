@@ -1,0 +1,55 @@
+namespace: "develop"
+giropopsSenhas:
+  name: "giropops-senhas-helm"
+  image: "ablackout3/giropops-senhas:latest"
+  minReplicas: 3
+  maxReplicas: 10
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  ingressPort: 5000
+  deploymentPort: 5000
+  ports:
+    - port: 5000
+      targetPort: 5000
+      name: "giropops-senhas-port"
+      serviceType: "ClusterIP"
+  labels:
+    app: "giropops-senhas"
+    env: "labs"
+  resources:
+    requests:
+      memory: "64Mi"
+      cpu: "120m"
+    limits:
+      memory: "128Mi"
+      cpu: "140m"
+redis:
+  name: "redis-helm"
+  image: "cgr.dev/chainguard/redis:latest"
+  replicas: 1
+  labels:
+    app: "redis"
+  ports:
+    - port: 6379
+      targetPort: 6379
+      name: "redis-port"
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "500m"
+    limits:
+      memory: "512Mi"
+      cpu: "800m"
+observability:
+  giropops-senhas:
+    logging: true
+    monitoring:
+      metrics: "/metrics"
+      port: "8080"
+databases:
+  giropops-senhas:
+    host: "mysql.svc.cluster.local"
+    type: "mysql"
+    port: 3306

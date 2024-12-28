@@ -1,0 +1,101 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: {{ .Values.redis.labels.app }}
+  name: {{ .Values.redis.name }}
+spec:
+  replicas: {{ .Values.redis.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.redis.labels.app }}
+  serviceName: {{ .Values.redis.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.redis.labels.app }}
+    spec:
+      containers:
+      - env:
+        - name: REDIS_ARGS
+          valueFrom:
+            configMapKeyRef:
+              key: REDIS_ARGS
+              name: redis-configmap
+        image: {{ .Values.redis.image }}
+        imagePullPolicy: Always
+        livenessProbe:
+          failureThreshold: 5
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          successThreshold: 1
+          tcpSocket:
+            port: redis-port
+          timeoutSeconds: 5
+        name: redis
+        ports:
+{{- range .Values.redis.ports }}
+        - containerPort: {{ .port }}
+          name: {{ .name }}
+{{- end }}
+        readinessProbe:
+          exec:
+            command:
+            - redis-cli
+            - ping
+          failureThreshold: 5
+          initialDelaySeconds: 5
+          periodSeconds: 3
+          successThreshold: 1
+          timeoutSeconds: 5
+        resources:
+          limits:
+            cpu: {{ .Values.redis.resources.limits.cpu }}
+            memory: {{ .Values.redis.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.redis.resources.requests.cpu }}
+            memory: {{ .Values.redis.resources.requests.memory }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+      - image: cgr.dev/chainguard/prometheus-redis-exporter:latest
+        livenessProbe:
+          httpGet:
+            path: /
+            port: exporter-port
+          initialDelaySeconds: 20
+          timeoutSeconds: 1
+        name: redis-exporter
+        ports:
+        - containerPort: 9121
+          name: exporter-port
+        readinessProbe:
+          httpGet:
+            path: /
+            port: exporter-port
+          initialDelaySeconds: 20
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: 0.8m
+            memory: 512M
+          requests:
+            cpu: 0.5m
+            memory: 256M
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsGroup: 65532
+          runAsNonRoot: true
+          runAsUser: 65532
+      securityContext:
+        fsGroup: 65532
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 65532
+        runAsNonRoot: true
+        runAsUser: 65532
+  updateStrategy:
+    type: RollingUpdate

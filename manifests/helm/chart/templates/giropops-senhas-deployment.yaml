@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include "app.labels" .Values.giropopsSenhas | nindent 4 }}
+  name: {{ .Values.giropopsSenhas.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ .Values.giropopsSenhas.labels.app }}
+  strategy:
+    rollingUpdate:
+      maxSurge: {{ .Values.giropopsSenhas.strategy.rollingUpdate.maxSurge | default 1 }}
+      maxUnavailable: {{ .Values.giropopsSenhas.strategy.rollingUpdate.maxUnavailable | default 0 }}
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.giropopsSenhas.labels.app }}
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - giropops-senhas
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      containers:
+      - env:
+        - name: REDIS_HOST
+          value: {{ .Values.redis.name }}.develop.svc.cluster.local
+        image: {{ .Values.giropopsSenhas.image }}
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.giropopsSenhas.deploymentPort }}
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+        name: giropops-senhas
+        ports:
+        - containerPort: {{ .Values.giropopsSenhas.deploymentPort }}
+          name: flask
+        readinessProbe:
+          httpGet:
+            path: /
+            port: {{ .Values.giropopsSenhas.deploymentPort }}
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+        resources:
+          limits:
+            cpu: {{ .Values.giropopsSenhas.resources.limits.cpu }}
+            memory: {{ .Values.giropopsSenhas.resources.limits.memory }}
+          requests:
+            cpu: {{ .Values.giropopsSenhas.resources.requests.cpu }}
+            memory: {{ .Values.giropopsSenhas.resources.requests.memory }}
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          runAsNonRoot: true

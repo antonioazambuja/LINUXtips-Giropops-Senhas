@@ -1,0 +1,34 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  labels:
+    app: giropops-senhas
+  name: giropops-senhas
+spec:
+  behavior:
+    scaleDown:
+      policies:
+      - periodSeconds: 10
+        type: Percent
+        value: 100
+      stabilizationWindowSeconds: 60
+    scaleUp:
+      policies:
+      - periodSeconds: 10
+        type: Percent
+        value: 100
+      stabilizationWindowSeconds: 5
+  maxReplicas: {{ .Values.giropopsSenhas.maxReplicas | default 10 }}
+  metrics:
+  - containerResource:
+      container: giropops-senhas
+      name: cpu
+      target:
+        averageUtilization: 50
+        type: Utilization
+    type: ContainerResource
+  minReplicas: {{ .Values.giropopsSenhas.minReplicas | default 3 }}
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ .Values.giropopsSenhas.name }}
