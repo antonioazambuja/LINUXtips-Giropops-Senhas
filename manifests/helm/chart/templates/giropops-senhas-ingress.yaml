@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    name: {{ .Values.giropopsSenhas.labels.app }}
+  name: giropops-senhas
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: giropops-senhas.antonioazambuja.dev
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ .Values.giropopsSenhas.name }}
+            port:
+              number: {{ .Values.giropopsSenhas.ingressPort }}
+        path: /
+        pathType: Prefix
